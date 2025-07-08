@@ -18,8 +18,9 @@ let currentStream = null;
 let facingMode = 'user'; // Start with front camera
 let currentMode = 'single';
 let photoCount = 0;
-const MAX_PHOTOS = 3;
+let MAX_PHOTOS = 3;
 let capturedPhotos = [];
+let currentOrientation = 'portrait'; // 'portrait' or 'landscape'
 
 // Initialize the camera
 async function initializeCamera() {
@@ -58,6 +59,7 @@ async function initializeCamera() {
 function resetPhotoStrip() {
     photoCount = 0;
     capturedPhotos = [];
+    MAX_PHOTOS = getMaxPhotos();
     previewContainer.classList.remove('show');
     previewContainer.style.display = 'none';
     document.getElementById('singleShotPreviewTitle').style.display = 'none';
@@ -67,6 +69,7 @@ function resetPhotoStrip() {
     const stripCanvas = document.getElementById('stripCanvas');
     const ctx = stripCanvas.getContext('2d');
     ctx.clearRect(0, 0, stripCanvas.width, stripCanvas.height);
+    updatePhotoCountUI();
 }
 
 // Initialize the app
@@ -119,14 +122,33 @@ function init() {
         });
     });
 
-    // Set up capture button
-    captureBtn.addEventListener('click', capturePhoto);
+    // Set up capture and flip buttons for both desktop and mobile
+    const captureBtnDesktop = document.getElementById('captureBtn');
+    const captureBtnMobile = document.getElementById('captureBtnMobile');
+    const flipCameraDesktop = document.getElementById('flipCamera');
+    const flipCameraMobile = document.getElementById('flipCameraMobile');
+    if (captureBtnDesktop) captureBtnDesktop.addEventListener('click', capturePhoto);
+    if (captureBtnMobile) captureBtnMobile.addEventListener('click', capturePhoto);
+    if (flipCameraDesktop) flipCameraDesktop.addEventListener('click', flipCamera);
+    if (flipCameraMobile) flipCameraMobile.addEventListener('click', flipCamera);
 
     // Set up download button
     downloadBtn.addEventListener('click', downloadPhoto);
 
-    // Set up flip camera button
-    flipCameraBtn.addEventListener('click', flipCamera);
+    // Orientation toggle logic
+    const orientationToggle = document.getElementById('orientationToggle');
+    if (orientationToggle) {
+        orientationToggle.addEventListener('click', () => {
+            if (currentOrientation === 'portrait') {
+                currentOrientation = 'landscape';
+                orientationToggle.textContent = '🖼️ Landscape';
+            } else {
+                currentOrientation = 'portrait';
+                orientationToggle.textContent = '📱 Portrait';
+            }
+            resetPhotoStrip();
+        });
+    }
 }
 
 // Flash effect function
@@ -145,9 +167,30 @@ function updateThumbnail(photoData) {
     thumbnail.classList.add('show');
 }
 
+function getCrop(video, orientation) {
+    // Portrait: 3/4, Landscape: 4/3
+    const targetAspect = orientation === 'portrait' ? 3 / 4 : 4 / 3;
+    const videoAspect = video.videoWidth / video.videoHeight;
+    let sx, sy, sw, sh;
+    if (videoAspect > targetAspect) {
+        // Video is wider than target: crop sides
+        sh = video.videoHeight;
+        sw = sh * targetAspect;
+        sx = (video.videoWidth - sw) / 2;
+        sy = 0;
+    } else {
+        // Video is taller than target: crop top/bottom
+        sw = video.videoWidth;
+        sh = sw / targetAspect;
+        sx = 0;
+        sy = (video.videoHeight - sh) / 2;
+    }
+    return { sx, sy, sw, sh };
+}
+
 // Capture photo function
 function capturePhoto() {
-    if (currentMode === 'strip' && photoCount >= MAX_PHOTOS) {
+    if (currentMode === 'strip' && photoCount >= getMaxPhotos()) {
         alert('Photo strip is full! Download your photos or start over.');
         return;
     }
@@ -160,15 +203,17 @@ function capturePhoto() {
         shutterSound.play();
     }
 
-    // Set canvas dimensions to match video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    // --- Orientation crop logic ---
+    const crop = getCrop(video, currentOrientation);
+    // Set canvas to selected aspect ratio
+    canvas.width = crop.sw;
+    canvas.height = crop.sh;
 
-    // Draw current video frame to canvas with filter
+    // Draw cropped video frame to canvas with filter
     const context = canvas.getContext('2d');
     const filterStyle = getComputedStyle(video).filter;
     context.filter = filterStyle;
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    context.drawImage(video, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, crop.sw, crop.sh);
     context.filter = 'none'; // Reset context filter
 
     if (currentMode === 'single') {
@@ -183,10 +228,9 @@ function capturePhoto() {
         // Store the captured photo
         capturedPhotos.push(canvas.toDataURL('image/png'));
         photoCount++;
-        document.getElementById('photoCount').textContent = photoCount;
-
+        updatePhotoCountUI();
         // Create photo strip if we have all photos
-        if (photoCount === MAX_PHOTOS) {
+        if (photoCount === getMaxPhotos()) {
             createPhotoStrip();
         }
     }
@@ -200,49 +244,63 @@ function capturePhoto() {
 
 // Create photo strip function
 function createPhotoStrip() {
+    // Use selected orientation crop for each photo
+    const crop = getCrop(video, currentOrientation);
     const stripCanvas = document.getElementById('stripCanvas');
     const ctx = stripCanvas.getContext('2d');
-    const targetWidth = 800; // Fixed width for the strip
-    const aspectRatio = video.videoWidth / video.videoHeight;
-    const photoWidth = targetWidth;
-    const photoHeight = targetWidth / aspectRatio;
-    const spacing = 20;
-
-    // Set strip canvas dimensions for vertical layout
-    stripCanvas.width = photoWidth;
-    stripCanvas.height = (photoHeight * MAX_PHOTOS) + (spacing * (MAX_PHOTOS - 1));
-
-    // Set white background
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, stripCanvas.width, stripCanvas.height);
-
-    // Draw each photo onto the strip vertically with animation
-    showPhotoStripPreview();
-
-    // Draw each photo onto the strip vertically
-    capturedPhotos.forEach((photoData, index) => {
-        const img = new Image();
-        img.onload = () => {
-            const y = index * (photoHeight + spacing);
-            // Add white border effect
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, y - spacing/2, photoWidth, spacing);
-            // Draw the photo with current filter
-            const activeFilter = document.querySelector('.filter-btn.active');
-            if (activeFilter && activeFilter.dataset.filter !== 'none') {
-                ctx.filter = getComputedStyle(video).filter;
-            }
-            ctx.drawImage(img, 0, y, photoWidth, photoHeight);
-            ctx.filter = 'none';
-
-            // Update thumbnail with the last photo
-            if (index === MAX_PHOTOS - 1) {
-                updateThumbnail(photoData);
-            }
-            ctx.drawImage(img, 0, y, photoWidth, photoHeight);
-        };
-        img.src = photoData;
-    });
+    let photoWidth, photoHeight, spacing, stripWidth, stripHeight, leftPadding;
+    if (currentOrientation === 'portrait') {
+        // Use full-size portrait photos side by side
+        photoWidth = crop.sw;
+        photoHeight = crop.sh;
+        spacing = Math.round(photoWidth * 0.06); // small gap
+        stripWidth = (2 * photoWidth) + spacing;
+        stripHeight = photoHeight;
+        leftPadding = 0;
+        stripCanvas.width = stripWidth;
+        stripCanvas.height = stripHeight;
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, stripCanvas.width, stripCanvas.height);
+        showPhotoStripPreview();
+        capturedPhotos.forEach((photoData, index) => {
+            const img = new Image();
+            img.onload = () => {
+                const x = leftPadding + index * (photoWidth + spacing);
+                const y = 0;
+                ctx.save();
+                ctx.beginPath();
+                ctx.roundRect(x, y, photoWidth, photoHeight, 28);
+                ctx.clip();
+                ctx.drawImage(img, x, y, photoWidth, photoHeight);
+                ctx.restore();
+                if (index === 1) updateThumbnail(photoData);
+            };
+            img.src = photoData;
+        });
+    } else {
+        // Three photos, vertical stack (original)
+        const targetWidth = 640;
+        const aspectRatio = crop.sw / crop.sh;
+        photoWidth = targetWidth;
+        photoHeight = targetWidth / aspectRatio;
+        spacing = 20;
+        stripCanvas.width = photoWidth;
+        stripCanvas.height = (photoHeight * 3) + (spacing * 2);
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, stripCanvas.width, stripCanvas.height);
+        showPhotoStripPreview();
+        capturedPhotos.forEach((photoData, index) => {
+            const img = new Image();
+            img.onload = () => {
+                const y = index * (photoHeight + spacing);
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, y - spacing/2, photoWidth, spacing);
+                ctx.drawImage(img, 0, y, photoWidth, photoHeight);
+                if (index === 2) updateThumbnail(photoData);
+            };
+            img.src = photoData;
+        });
+    }
 }
 
 // Download photo strip function
@@ -293,4 +351,17 @@ function showPhotoStripPreview() {
     document.getElementById('photoStripPreviewTitle').style.display = '';
     document.getElementById('photoStrip').style.display = '';
     downloadBtn.innerHTML = '<i class="fas fa-download" aria-hidden="true"></i> Download Photo Strip';
+}
+
+function getMaxPhotos() {
+    return (currentMode === 'strip' && currentOrientation === 'portrait') ? 2 : 3;
+}
+
+function updatePhotoCountUI() {
+    const countElem = document.getElementById('photoCount');
+    if (countElem) countElem.textContent = photoCount;
+    const captureCountElem = document.getElementById('captureCount');
+    if (captureCountElem) {
+        captureCountElem.querySelector('span').innerHTML = `Photos: <span id="photoCount">${photoCount}</span>/${getMaxPhotos()}`;
+    }
 }

@@ -34,7 +34,20 @@
             </div>
         </section>
         <section class="controls" aria-label="Photo controls">
+            <div class="orientation-toggle-wrapper" style="display: flex; justify-content: center; align-items: center; margin-bottom: 10px;">
+                <button id="orientationToggle" class="orientation-btn" aria-label="Toggle orientation" type="button">📱 Portrait</button>
+            </div>
+            <div class="action-buttons mobile-only">
+                <button id="captureBtnMobile" class="action-btn capture-btn" aria-label="Take photo">
+                    <i class="fas fa-camera" aria-hidden="true"></i>
+                    <span class="tooltip">Take Photo</span>
+                </button>
+            </div>
             <div class="filter-buttons" aria-label="Filter selection">
+                <button id="flipCameraMobile" class="action-btn flip-btn" aria-label="Flip camera">
+                    <i class="fas fa-camera-rotate" aria-hidden="true"></i>
+                    <span class="tooltip">Flip Camera</span>
+                </button>
                 <button class="filter-btn active" data-filter="none" aria-pressed="true" aria-label="Normal filter">
                     <i class="fas fa-circle" aria-hidden="true"></i> Normal
                 </button>
@@ -69,14 +82,14 @@
                     <span role="img" aria-label="Green Tint">🌿</span> Green Tint
                 </button>
             </div>
-            <div class="action-buttons">
-                <button id="flipCamera" class="action-btn" aria-label="Flip camera">
-                    <i class="fas fa-camera-rotate" aria-hidden="true"></i>
-                    <span class="tooltip">Flip Camera</span>
-                </button>
+            <div class="action-buttons desktop-only">
                 <button id="captureBtn" class="action-btn capture-btn" aria-label="Take photo">
                     <i class="fas fa-camera" aria-hidden="true"></i>
                     <span class="tooltip">Take Photo</span>
+                </button>
+                <button id="flipCamera" class="action-btn" aria-label="Flip camera">
+                    <i class="fas fa-camera-rotate" aria-hidden="true"></i>
+                    <span class="tooltip">Flip Camera</span>
                 </button>
             </div>
             <div class="capture-count" id="captureCount" style="display: none;">

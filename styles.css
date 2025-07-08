@@ -81,9 +81,15 @@ body {
     border-radius: 24px;
     overflow: hidden;
     background: rgba(0,0,0,0.7);
-    aspect-ratio: 16/9;
+    aspect-ratio: 3/4;
     box-shadow: 0 6px 24px rgba(161,140,209,0.18);
     margin-bottom: 18px;
+    min-height: 340px;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+    border: 6px solid #fff;
+    box-shadow: 0 4px 24px 0 rgba(161,140,209,0.10), 0 0 0 2px #fff inset;
 }
 #video {
     width: 100%;
@@ -92,6 +98,7 @@ body {
     border-radius: 24px;
     box-shadow: 0 2px 12px rgba(161,140,209,0.10);
     transition: box-shadow 0.3s;
+    background: #000;
 }
 
 .flash {
@@ -364,17 +371,126 @@ body {
 @media (max-width: 900px) {
     .container { padding: 10px; }
     .preview-container { padding: 10px 0; }
+    .camera-container {
+        max-width: 98vw;
+        min-height: 260px;
+        border-radius: 16px;
+        border-width: 4px;
+    }
+    #video {
+        border-radius: 16px;
+    }
 }
 @media (max-width: 600px) {
-    .container { padding: 4px; }
-    .app-header h1 { font-size: 1.5rem; }
-    .mode-btn, .action-btn, .filter-btn { font-size: 0.95rem; padding: 10px 14px; }
-    .camera-container { border-radius: 12px; }
-    .preview-container { border-radius: 12px; }
+    html, body {
+        width: 100vw;
+        overflow-x: hidden;
+    }
+    .container {
+        padding: 2vw 0 0 0;
+        width: 100%;
+        min-width: 0;
+        max-width: 900px;
+        box-sizing: border-box;
+        margin: 0 auto;
+        overflow-x: hidden;
+    }
+    .app-header {
+        margin-bottom: 6px;
+        padding-top: 2vw;
+    }
+    .app-header h1 {
+        font-size: 1.35rem;
+        margin-bottom: 6px;
+        line-height: 1.25;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-shadow: 0 1px 4px rgba(161,140,209,0.08);
+    }
+    .camera-container {
+        aspect-ratio: unset;
+        height: 55vh;
+        min-height: 180px;
+        max-width: 100%;
+        width: 100%;
+        border-radius: 12px;
+        border-width: 3px;
+        margin-bottom: 6px;
+        margin-left: 0;
+        margin-right: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        box-sizing: border-box;
+    }
+    #video {
+        border-radius: 8px;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        margin: 0 auto;
+    }
+    .controls {
+        margin-top: 4px;
+        width: 100%;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .filter-buttons {
+        gap: 4px;
+        flex-wrap: wrap;
+        justify-content: center;
+        width: 100%;
+        box-sizing: border-box;
+        margin-bottom: 4px;
+    }
+    .action-buttons {
+        margin-bottom: 10px;
+        margin-top: 0;
+        justify-content: center;
+        width: 100%;
+    }
+    .filter-buttons {
+        margin-top: 0;
+    }
+    .capture-btn {
+        padding: 18px 32px;
+        font-size: 1.35rem;
+        border-radius: 32px;
+    }
+    .capture-btn i {
+        font-size: 1.6em;
+    }
+    .preview-container { border-radius: 12px; width: 100%; box-sizing: border-box; margin: 0; }
     .preview-thumbnail, .preview-thumbnail img { width: 70px; height: 70px; border-radius: 10px; }
-    .action-buttons { gap: 10px; }
-    .filter-buttons { gap: 6px; }
-    .capture-btn { padding: 12px 18px; font-size: 1.1rem; }
+    .mobile-only { display: flex !important; }
+    .desktop-only { display: none !important; }
+    #flipCameraMobile {
+        margin-bottom: 0;
+        margin-right: 6px;
+        padding: 12px 18px;
+        font-size: 1.1rem;
+        border-radius: 18px;
+        background: linear-gradient(90deg, #a18cd1 0%, #fbc2eb 100%);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(161,140,209,0.10);
+    }
+    #captureBtnMobile {
+        padding: 18px 32px;
+        font-size: 1.35rem;
+        border-radius: 32px;
+    }
+    #captureBtnMobile i {
+        font-size: 1.6em;
+    }
+}
+@media (min-width: 601px) {
+    .mobile-only { display: none !important; }
+    .desktop-only { display: flex !important; }
 }
 
 /* Responsive for single shot preview image */
@@ -414,5 +530,33 @@ body {
     .preview-container h3 {
         font-size: 1.1rem;
         margin-bottom: 10px;
+    }
+}
+
+.orientation-btn {
+    padding: 10px 22px;
+    border: none;
+    border-radius: 18px;
+    background: linear-gradient(90deg, #a18cd1 0%, #fbc2eb 100%);
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.22s cubic-bezier(.4,0,.2,1);
+    box-shadow: 0 2px 8px rgba(161,140,209,0.10);
+    margin-bottom: 0;
+    margin-right: 0;
+    outline: none;
+}
+.orientation-btn.active {
+    background: linear-gradient(90deg, #fbc2eb 0%, #a18cd1 100%);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(161,140,209,0.18);
+}
+@media (max-width: 600px) {
+    .orientation-btn {
+        font-size: 1rem;
+        padding: 8px 12px;
+        border-radius: 12px;
     }
 }
